@@ -11,6 +11,9 @@ class MockNmConnection(object):
     def get_ip4_config(self):
         return None
 
+    def get_connection(self):
+        return MockNmConnection()
+
 
 class MockNmDevice(object):
     def __init__(self, devstate=DOWN, active_connection=MockNmConnection(),
