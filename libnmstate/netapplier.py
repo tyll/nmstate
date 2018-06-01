@@ -20,15 +20,21 @@
 
 import socket
 
+from gi.repository import Gio, GLib
+
 from libnmstate import nmclient
 from libnmstate import validator
 from libnmstate.nmclient import NM
 
 
+main_loop = GLib.MainLoop()
+
 def apply(desired_state):
     validator.verify(desired_state)
 
     _apply_ifaces_state(desired_state)
+
+
 
 
 def _apply_ifaces_state(state):
@@ -37,7 +43,9 @@ def _apply_ifaces_state(state):
     for iface_state in state['interfaces']:
         nmdev = client.get_device_by_iface(iface_state['name'])
         active_connection = nmdev.get_active_connection()
+        connection = None
 
+        #import pdb; pdb.set_trace()
         if iface_state['state'] == 'up':
             ip4state = iface_state.get("ip")
             if ip4state:
@@ -65,6 +73,31 @@ def _apply_ifaces_state(state):
                 client.deactivate_connection_async(active_connection)
         else:
             raise UnsupportedIfaceStateError(iface_state)
+
+    if connection:
+        cancellable = Gio.Cancellable.new()
+        cb_args = {}
+        timeout = 10
+
+        client.activate_connection_async(connection, None, None, cancellable, activate_cb, cb_args)
+        main_loop.run()
+
+
+def activate_cb(client, result, cb_args):
+    active_connection = None
+    try:
+        active_connection = client.activate_connection_finish(result)
+    except Exception as e:
+        if isinstance(e, GLib.GError):
+            print(e)
+            if e.domain == 'g-io-error-quark' and \
+                    e.code == Gio.IOErrorEnum.CANCELLED:
+                return
+
+        cb_args['error'] = str(e)
+        cb_args['active_connection'] = active_connection
+    finally:
+        main_loop.quit()
 
 
 class UnsupportedIfaceStateError(Exception):
