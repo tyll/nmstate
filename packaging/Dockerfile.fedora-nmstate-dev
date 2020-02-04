@@ -53,6 +53,8 @@ RUN dnf -y install --setopt=install_weak_deps=False \
     ln -s /root/.local/bin/pytest /usr/bin/pytest && \
     bash ./docker_sys_config.sh && rm ./docker_sys_config.sh
 
+RUN rpm --verifydb
+
 VOLUME [ "/sys/fs/cgroup" ]
 
 CMD ["/usr/sbin/init"]

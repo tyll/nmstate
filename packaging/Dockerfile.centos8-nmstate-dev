@@ -4,6 +4,9 @@
 # It enables systemd to be operational.
 FROM docker.io/library/centos:8
 ENV container docker
+
+COPY .git/refs/heads/master /.githash
+
 COPY docker_enable_systemd.sh docker_sys_config.sh ./
 
 RUN bash ./docker_enable_systemd.sh && rm ./docker_enable_systemd.sh
@@ -41,6 +44,8 @@ RUN dnf -y install --setopt=install_weak_deps=False \
     ln -s /root/.local/bin/tox /usr/bin/tox && \
     dnf clean all && \
     bash ./docker_sys_config.sh && rm ./docker_sys_config.sh
+
+RUN rpm --verifydb
 
 VOLUME [ "/sys/fs/cgroup" ]
 
